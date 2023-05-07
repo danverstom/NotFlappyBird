@@ -9,7 +9,9 @@ project structure.
 <center><img src="https://github.com/TomD53/NotFlappyBird/blob/main/demo.gif" width="566"></center>
 
 How to compile:
+
     gcc main.c -o main.exe
 
 How to run:
+
     ./main.exe
