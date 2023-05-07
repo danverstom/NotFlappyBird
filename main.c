@@ -37,7 +37,6 @@
 #include "conio.h"
 #include "math.h"
 
-#define ESC "\x1b"
 #define CSI "\x1b["
 
 #define SCREEN_WIDTH    300
@@ -93,15 +92,12 @@ struct Bird {
 };
 
 /**
- * The ScoreCounter contains a list of Entity objects that make up the digits of the score. It also contains the score
- * itself, and the position of the score counter on the screen. The score counter is updated every time the user passes
- * an obstacle. The score counter can be updated by calling the update_score_counter function.
+ * The ScoreCounter contains a list of Entity objects that make up the digits of the score. The score counter is updated
+ * every time the user passes an obstacle.
+ * The score counter can be updated by calling the update_score_counter function.
  */
 struct ScoreCounter {
     struct Entity digits[SCORE_COUNTER_DIGITS];
-    int score;
-    int x;
-    int y;
 };
 
 /**
@@ -168,7 +164,7 @@ void add_entity_view_from_file(struct Entity *entity, char *filename);
 void next_entity_view(struct Entity *entity);
 void register_entity(struct GameState *game_state, struct Entity *entity);
 void create_obstacle(struct GameState *game_state, int x, int y, int gap_size);
-void update_obstacle(struct Obstacle *obstacle, struct GameState *game_state);
+void update_obstacle(struct Obstacle *obstacle);
 void run_periodic_timers(struct GameState *game_state, struct PeriodicTimer periodic_timers[], size_t periodic_timer_count);
 void create_score_counter(struct GameState *game_state, int x, int y);
 void update_score_counter(struct GameState *game_state);
@@ -345,7 +341,7 @@ void wait_for_user_to_resize_console() {
  */
 void set_cursor(int x, int y) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD Position = {x, y};
+    COORD Position = {(short) x, (short) y};
     SetConsoleCursorPosition(hOut, Position);
 }
 
@@ -474,7 +470,7 @@ void add_entity_view_from_file(struct Entity *entity, char *filename) {
     }
 
     // parse the file
-    int num = fscanf(file, "width %d\nheight %d\norigin_x %d\norigin_y %d\n",
+    int num = fscanf(file, "width %d\nheight %d\norigin_x %d\norigin_y %d\n", // NOLINT(cert-err34-c)
                      &view.width, &view.height, &view.origin_x, &view.origin_y);
 
     // check that the file was parsed correctly
@@ -489,13 +485,12 @@ void add_entity_view_from_file(struct Entity *entity, char *filename) {
     // this is because whitespace gets deleted by `fscanf`
     while (c != '\n' && c != '\r') {
         fseek(file, -2, SEEK_CUR);
-        c = fgetc(file);
+        c = (char) fgetc(file);
     }
 
     while (c) {
         // read one character from the file
-        c = fgetc(file);
-        size_t index = 0;
+        c = (char) fgetc(file);
         char *tmp = NULL;
 
         // check if we need to stop (we reached the end of the file)
@@ -585,7 +580,7 @@ void create_obstacle(struct GameState *game_state, int x, int y, int gap_size) {
     register_entity(game_state, &output->top_entity);
     register_entity(game_state, &output->bottom_entity);
 
-    update_obstacle(output, game_state);
+    update_obstacle(output);
 }
 
 /**
@@ -593,7 +588,7 @@ void create_obstacle(struct GameState *game_state, int x, int y, int gap_size) {
  * @param obstacle The obstacle to update
  * @param game_state The game state
  */
-void update_obstacle(struct Obstacle *obstacle, struct GameState *game_state) {
+void update_obstacle(struct Obstacle *obstacle) {
     // set positions of the entities
     obstacle->top_entity.x = obstacle->x;
     obstacle->bottom_entity.x = obstacle->x;
@@ -626,7 +621,7 @@ void scroll_world(struct GameState *game_state) {
             game_state->obstacles[i].y = (rand() % (SCREEN_HEIGHT - SCREEN_HEIGHT / 2)) + SCREEN_HEIGHT / 4;
             game_state->obstacles[i].score_collected = false;
         }
-        update_obstacle(&game_state->obstacles[i], game_state);
+        update_obstacle(&game_state->obstacles[i]);
     }
 
     if (game_state->screen_type == TITLE_SCREEN) {
@@ -676,7 +671,7 @@ void game_tick(struct GameState *game_state) {
 
     // apply gravity
     if (game_state->bird.velocity < 1) {
-        game_state->bird.velocity += 0.2;
+        game_state->bird.velocity += 0.2f;
     }
 
     if (game_state->screen_type == TITLE_SCREEN) {
@@ -751,7 +746,7 @@ void start_game(struct GameState *game_state) {
         game_state->obstacles[i].x = SCREEN_WIDTH / 4 + (i * SCREEN_WIDTH / game_state->obstacle_count);
         game_state->obstacles[i].y = (rand() % (SCREEN_HEIGHT - SCREEN_HEIGHT / 2)) + SCREEN_HEIGHT / 4;
         game_state->obstacles[i].score_collected = false;
-        update_obstacle(&game_state->obstacles[i], game_state);
+        update_obstacle(&game_state->obstacles[i]);
     }
 }
 
